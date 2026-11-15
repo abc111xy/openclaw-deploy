@@ -67,3 +67,4 @@ echo "[boot] gate pid=$GATE_PID"
 trap 'kill $GATE_PID 2>/dev/null || true' INT TERM EXIT
 
 exec node /app/openclaw.mjs gateway
+# rev: 2026-11-15 fix controlUi schema
