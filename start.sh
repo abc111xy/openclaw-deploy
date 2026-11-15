@@ -15,6 +15,14 @@ set -eu
 
 mkdir -p "$OPENCLAW_STATE_DIR" "$OPENCLAW_WORKSPACE_DIR" "$OPENCLAW_STATE_DIR/sessions"
 
+# 平台重启会复用文件系统：上一轮 gateway 留下的 pid-ns 锁会让新容器判定
+# "GatewayLockNamespaceError: different PID namespace" 从而拒绝启动。
+# 免费容器本就无持久化需求，这里直接清掉状态目录，保证每次干净启动。
+if [ -d "$OPENCLAW_STATE_DIR/state" ]; then
+  echo "[boot] clearing stale gateway state (pid-ns lock from previous run)"
+  rm -rf "$OPENCLAW_STATE_DIR/state" 2>/dev/null || true
+fi
+
 # 归一化 base url：去掉结尾斜杠与 /chat/completions
 BASE=$(printf '%s' "$OPENAI_API_BASE" | sed 's#/chat/completions$##' | sed 's#/*$##')
 
@@ -67,4 +75,3 @@ echo "[boot] gate pid=$GATE_PID"
 trap 'kill $GATE_PID 2>/dev/null || true' INT TERM EXIT
 
 exec node /app/openclaw.mjs gateway
-# rev: 2026-11-15 fix controlUi schema
