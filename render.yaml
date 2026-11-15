@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: openclaw
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: OPENAI_API_BASE
+        value: https://free-gw.pages.dev/v1
+      - key: MODEL
+        value: kilo-auto/free
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENCLAW_GATEWAY_TOKEN
+        generateValue: true
+      - key: OPENCLAW_GATEWAY_PORT
+        value: 18789
