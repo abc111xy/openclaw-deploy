@@ -12,16 +12,26 @@ set -eu
 : "${OPENAI_API_BASE:=https://free-gw.pages.dev/v1}"
 : "${OPENAI_API_KEY:=sk-free-gw-anykey}"
 : "${OPENCLAW_GATEWAY_TOKEN:=}"
+# 前台单进程运行，避免 gateway 派生 daemon 后与自身争抢 ownership lease
+: "${OPENCLAW_NO_RESPAWN:=1}"
+export OPENCLAW_NO_RESPAWN
+
+# 平台重启会复用文件系统：上一轮 gateway 留下的 ownership lease / pid-ns 锁会让
+# 新容器判定 "cannot verify Gateway ownership (different PID namespace)" 并拒绝启动。
+# 锁不只在 state/ 子目录里，因此整目录清空；免费容器本就没有持久化需求。
+case "$OPENCLAW_STATE_DIR" in
+  */.openclaw)
+    if [ -e "$OPENCLAW_STATE_DIR" ]; then
+      echo "[boot] wiping $OPENCLAW_STATE_DIR for a clean start"
+      rm -rf "$OPENCLAW_STATE_DIR" 2>/dev/null || true
+    fi
+    ;;
+  *)
+    echo "[boot] WARN: unexpected OPENCLAW_STATE_DIR=$OPENCLAW_STATE_DIR, skip wipe"
+    ;;
+esac
 
 mkdir -p "$OPENCLAW_STATE_DIR" "$OPENCLAW_WORKSPACE_DIR" "$OPENCLAW_STATE_DIR/sessions"
-
-# 平台重启会复用文件系统：上一轮 gateway 留下的 pid-ns 锁会让新容器判定
-# "GatewayLockNamespaceError: different PID namespace" 从而拒绝启动。
-# 免费容器本就无持久化需求，这里直接清掉状态目录，保证每次干净启动。
-if [ -d "$OPENCLAW_STATE_DIR/state" ]; then
-  echo "[boot] clearing stale gateway state (pid-ns lock from previous run)"
-  rm -rf "$OPENCLAW_STATE_DIR/state" 2>/dev/null || true
-fi
 
 # 归一化 base url：去掉结尾斜杠与 /chat/completions
 BASE=$(printf '%s' "$OPENAI_API_BASE" | sed 's#/chat/completions$##' | sed 's#/*$##')
