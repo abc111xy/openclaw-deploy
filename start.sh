@@ -48,8 +48,6 @@ cat > "$OPENCLAW_CONFIG_PATH" <<JSON
     "auth": { "mode": "token", "token": "$OPENCLAW_GATEWAY_TOKEN" },
     "controlUi": {
       "enabled": true,
-      "allowInsecureAuth": true,
-      "dangerouslyDisableDeviceAuth": true,
       "dangerouslyAllowHostHeaderOriginFallback": true
     }
   }
